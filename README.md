@@ -71,3 +71,4 @@ Set the environment variable `SLOT_CHECKER_DEBUG` to get more detailed logs. It 
 ## TODO
 
 - [] add discord on senders
+- [] log every x minutes the bot is alive
