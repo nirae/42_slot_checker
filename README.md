@@ -66,7 +66,9 @@ You need the `token` of your bot, and **your** `chat_id`
 
 ## Debug
 
-Set the environment variable `SLOT_CHECKER_DEBUG` to get more detailed logs. It will also use your slot page instead of a project slot page. You just have to add some slots et you will see your slots to debug
+Set the environment variable `SLOT_CHECKER_DEBUG` to get more detailed logs. 
+
+You can also use your slot page instead of a project slot page by choosing `debug_my_slots` in the `projects` option in the yaml configuration file. You just have to add some slots et you will see your slots to debug
 
 ## TODO
 

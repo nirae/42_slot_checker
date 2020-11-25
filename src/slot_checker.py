@@ -69,7 +69,7 @@ class Intra(object):
 
     @check_signin
     def get_project_slots(self, project, start, end):
-        if DEBUG:
+        if project == 'debug_my_slots':
             r = self.client.get('https://profile.intra.42.fr/slots.json?start={start}&end={end}'.format(start=start, end=end))
         else:
             r = self.client.get(self.slot_url.format(project=project, start=start, end=end))

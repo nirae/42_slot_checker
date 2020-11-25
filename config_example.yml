@@ -7,4 +7,4 @@ send:
     token: '000000000:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
     chat_id: '0000000000'
 projects:
-  - "42cursus-ft_linear_regression"
+  - "debug_my_slots"
