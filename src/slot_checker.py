@@ -234,14 +234,6 @@ if __name__ == "__main__":
         log.info("Exit")
         sys.exit(1)
     
-    with open(args.config) as f:
-        data = yaml.load(f, Loader=yaml.FullLoader)
-
     log.info("Starting the checker")
-
-    schema = ConfigSchema()
-    config = schema.load(data)
-    log.debug("CONFIGURATION :", vars(config))
-
     checker = Checker(config)
     checker.run()
