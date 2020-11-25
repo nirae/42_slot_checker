@@ -18,7 +18,7 @@ optional arguments:
 ## Docker
 
 ```
-make build && make up
+make up
 ```
 
 ## Configuration
