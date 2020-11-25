@@ -13,6 +13,7 @@ import logging as log
 # https://marshmallow.readthedocs.io/en/stable/
 from marshmallow import Schema, fields, validate, validates, post_load, ValidationError
 import time
+import threading
 from datetime import date, datetime, timedelta
 
 
@@ -155,8 +156,16 @@ class Checker(object):
         self.sender = None
         if self.config.sender:
             self.sender = Sender(self.config.sender)
+        self.health_delay = 60
+        self.health = threading.Thread(target=self.health_loop)
+        
+    def health_loop(self):
+        while True:
+            log.info("[Health check] slot checker still alive")
+            time.sleep(self.health_delay)
 
     def run(self):
+        self.health.start()
         while True:
             for project in self.config.projects:
                 slots = self.intra.get_project_slots(project, start=self.config.start, end=self.config.end)
