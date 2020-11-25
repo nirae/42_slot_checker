@@ -1,10 +1,15 @@
-version: '3'
+version: '3.7'
 services:
   slot_checker:
     build: .
     image: slot_checker
     # environment:
     #   - SLOT_CHECKER_DEBUG=1
+    configs:
+      - source: $PWD/config.yml
+        target: /usr/src/app/config.yml
     volumes:
-      - "./config.yml:/usr/src/app/config.yml"
+      - type: bind
+        source: $PWD/config.yml
+        target: /usr/src/app/config.yml
     restart: always
