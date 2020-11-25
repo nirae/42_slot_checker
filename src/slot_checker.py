@@ -15,6 +15,7 @@ from marshmallow import Schema, fields, validate, validates, post_load, Validati
 import time
 import threading
 from datetime import date, datetime, timedelta
+import re
 
 
 if 'SLOT_CHECKER_DEBUG' in os.environ:
@@ -83,7 +84,7 @@ class Intra(object):
 
 class Config(object):
 
-    def __init__(self, login, password, projects, send=None, refresh=30, range=7):
+    def __init__(self, login, password, projects, send=None, refresh=30, range=7, disponibility="00:00-23:59"):
         self.login = login
         self.password = password
         self.refresh = refresh
@@ -91,7 +92,15 @@ class Config(object):
         self.sender = send
         self.start = date.today()
         self.end = date.today() + timedelta(days=range)
-
+        try:
+            hours = disponibility.split('-')
+            self.start_dispo = datetime.strptime(hours[0], '%H:%M').time()
+            self.end_dispo = datetime.strptime(hours[1], '%H:%M').time()
+        except:
+            log.error("disponibility hours is not valid : %s" % disponibility)
+            self.start_dispo = None
+            self.end_dispo = None
+        print(self.start_dispo, self.end_dispo)
 
 class ConfigSchema(Schema):
 
@@ -125,10 +134,18 @@ class ConfigSchema(Schema):
     )
     refresh = fields.Int(required=False, default=30)
     range = fields.Int(required=False, default=7)
+    disponibility = fields.Str(required=False, default="00:00-23:59")
 
     @post_load
     def create_processing(self, data, **kwargs):
         return Config(**data)
+
+    @validates('disponibility')
+    def validate_disponibility(self, disponibility):
+        rx = re.compile(r'^([0-9]{2}:[0-9]{2}-[0-9]{2}:[0-9]{2})$')
+        match = rx.search(disponibility)
+        if not match:
+            raise ValidationError("disponibility not valid")
 
 
 class Sender(object):
@@ -178,9 +195,13 @@ class Checker(object):
                     log.info(slot)
                     date = datetime.strptime(slot['start'], '%Y-%m-%dT%H:%M:00.000+01:00')
                     log.info("found slot for project %s, %s at %s" % (project, date.strftime('%d/%m/%Y'), date.strftime('%H:%M')))
-                    if self.sender:
-                        message = "Slot found for <b>%s</b> project :\n <b>%s</b> at <b>%s</b>" % (project, date.strftime('%A %d/%m'), date.strftime('%H:%M'))
-                        self.sender.send(message)
+                    if (date.time() > config.start_dispo and date.time() < config.end_dispo):
+                        if self.sender:
+                            log.info("send to %s" % self.sender.send_option)
+                            message = "Slot found for <b>%s</b> project :\n <b>%s</b> at <b>%s</b>" % (project, date.strftime('%A %d/%m'), date.strftime('%H:%M'))
+                            self.sender.send(message)
+                    else:
+                        log.info("the slot is not in the disponibility range, not sending")
             time.sleep(self.config.refresh)
     
     def quit(self):
