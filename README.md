@@ -4,7 +4,7 @@
 
 ```
 ./src/slot_checker.py -h
-usage: slot_checker.py [-h] [-c CONFIG]
+usage: slot_checker.py [-h] [-c CONFIG] [-v]
 
 42 slot checker
 
@@ -12,18 +12,33 @@ optional arguments:
   -h, --help            show this help message and exit
   -c CONFIG, --config CONFIG
                         config file
+  -v, --verbose         include debugging logs
 
 ```
-
-## Docker
-
+If you have missing dependencies, install them with pip:
 ```
-make build && make up
+pip install -r requirements.txt
 ```
+or consider using a virtual environment.
+
+## Usage with Docker
+
+Full set-up is provided with Docker, docker-compose and Makefile.
+If you don't have Docker and docker-compose, check out the official [Docker](https://docs.docker.com/get-docker/) and [Docker-Compose](https://docs.docker.com/compose/install/) doc and follow the guidelines for your distribution.
+
+Then you can run one of the makefile rules:
+```
+# Build and up container
+make up
+
+# Build and up container in detached mode
+make upd
+```
+If you don't have Docker and docker-compose, check out the official [Docker](https://docs.docker.com/get-docker/) and [Docker-Compose](https://docs.docker.com/compose/install/) doc and follow the guidelines for your distribution.
 
 ## Configuration
 
-The program work with a YAML configuration file, `config.yml` per default
+The program work with a YAML configuration file, `config.yml` by default
 
 ### Minimal configuration
 
@@ -54,7 +69,7 @@ projects:
   - "42cursus-ft_my_project"
 ```
 
-- `refresh` is the time to wait for refresh the slot page in second (default: 30)
+- `refresh` is the time to wait for refresh the slot page in seconds (default: 30)
 - `range` is the number of days during which you are looking for slots (default: 7)
 - `disponibility` is the range of the hours you want to be alerted (default: 00:00-23:59)
 
@@ -65,14 +80,21 @@ To send with `telegram`, you need a bot. [How to create a telegram bot?](https:/
 :warning: Don't forget to talk to your bot one first time :warning:
 
 You need the `token` of your bot, and **your** `chat_id`
+To find your `chat_id`, initiate a conversation with the telegram bot @chatid_echo_bot
 
 ## Debug
 
 Set the environment variable `SLOT_CHECKER_DEBUG` to get more detailed logs. 
 
 You can also use your slot page instead of a project slot page by choosing `debug_my_slots` in the `projects` option in the yaml configuration file. You just have to add some slots et you will see your slots to debug
+To get more detailed logs:
+- with docker: set the environment variable `SLOT_CHECKER_DEBUG` in the docker-compose.yml
+- without docker: run the slot_checker with its --verbose option.
+
+Moreover, your slot page instead of a project slot page. You just have to add some slots and you will see your slots to debug
 
 ## TODO
 
 - [] add discord on senders
 - [x] log every x minutes the bot is alive
+- [] custom header with referer, user-agent... 
