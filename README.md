@@ -76,3 +76,4 @@ You can also use your slot page instead of a project slot page by choosing `debu
 
 - [] add discord on senders
 - [x] log every x minutes the bot is alive
+- [] custom header with referer, user-agent... 
