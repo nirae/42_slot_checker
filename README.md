@@ -45,6 +45,7 @@ login: "my_42_login"
 password: "my_42_password"
 refresh: 30
 range: 7
+disponibility: "09:00-20:00"
 send:
   telegram:
     token: '000000000:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
@@ -55,6 +56,7 @@ projects:
 
 - `refresh` is the time to wait for refresh the slot page in second (default: 30)
 - `range` is the number of days during which you are looking for slots (default: 7)
+- `disponibility` is the range of the hours you want to be alerted (default: 00:00-23:59)
 
 ## Sending
 
