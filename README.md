@@ -73,4 +73,4 @@ You can also use your slot page instead of a project slot page by choosing `debu
 ## TODO
 
 - [] add discord on senders
-- [] log every x minutes the bot is alive
+- [x] log every x minutes the bot is alive
