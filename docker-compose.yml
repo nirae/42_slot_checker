@@ -2,8 +2,8 @@ version: '3'
 services:
   slot_checker:
     image: slot_checker
-    environment:
-      - SLOT_CHECKER_DEBUG=1
+    # environment:
+    #   - SLOT_CHECKER_DEBUG=1
     volumes:
       - "./config.yml:/usr/src/app/config.yml"
     restart: always

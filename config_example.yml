@@ -2,6 +2,7 @@ login: "my_42_login"
 password: "my_42_password"
 refresh: 30
 range: 7
+disponibility: "07:00-20:00"
 send:
   telegram:
     token: '000000000:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
