@@ -1,21 +1,24 @@
 #! /usr/bin/env python3
 
+import re
 import os
 import sys
-import argparse as arg
-# https://python-telegram-bot.readthedocs.io/en/stable/
-import telegram
-import yaml
-import httpx
-# https://www.crummy.com/software/BeautifulSoup/bs4/doc/
-from bs4 import BeautifulSoup
-import logging as log
-# https://marshmallow.readthedocs.io/en/stable/
-from marshmallow import Schema, fields, validate, validates, post_load, ValidationError
 import time
 import threading
 from datetime import date, datetime, timedelta
-import re
+
+import yaml
+import httpx
+# https://python-telegram-bot.readthedocs.io/en/stable/
+import telegram
+import logging as log
+import argparse as arg
+# https://www.crummy.com/software/BeautifulSoup/bs4/doc/
+from bs4 import BeautifulSoup
+# https://marshmallow.readthedocs.io/en/stable/
+from marshmallow.exceptions import ValidationError
+from marshmallow import Schema, fields, validate, validates, post_load, ValidationError
+from datetime import date, datetime, timedelta
 
 log.basicConfig(format='%(levelname)s %(asctime)s %(message)s',
         datefmt='%d/%m/%Y %H:%M:%S',
