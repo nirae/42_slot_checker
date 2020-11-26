@@ -2,7 +2,6 @@
 
 all: up
 
-
 build:
 	docker build -t slot_checker .
 

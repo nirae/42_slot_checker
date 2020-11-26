@@ -10,4 +10,4 @@ jobs:
       - name: docker build
         run: make build
       - name: docker compose up
-        run: timeout --preserve-status 30 docker-compose up --exit-code-from slot_checker
+        run: timeout --preserve-status 15 docker-compose up --exit-code-from slot_checker
