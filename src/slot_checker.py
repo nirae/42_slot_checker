@@ -98,7 +98,6 @@ class Config(object):
             log.error("disponibility hours is not valid : %s" % disponibility)
             self.start_dispo = None
             self.end_dispo = None
-        print(self.start_dispo, self.end_dispo)
 
 class ConfigSchema(Schema):
 
