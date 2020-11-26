@@ -2,6 +2,12 @@
 
 ![actions](https://github.com/nirae/42_slot_checker/workflows/Build/badge.svg)
 
+## Docker
+
+```
+make build && make up
+```
+
 ## Usage
 
 ```
@@ -15,12 +21,6 @@ optional arguments:
   -c CONFIG, --config CONFIG
                         config file
 
-```
-
-## Docker
-
-```
-make build && make up
 ```
 
 ## Configuration
