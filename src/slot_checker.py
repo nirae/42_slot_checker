@@ -18,7 +18,8 @@ from bs4 import BeautifulSoup
 # https://marshmallow.readthedocs.io/en/stable/
 from marshmallow.exceptions import ValidationError
 from marshmallow import Schema, fields, validate, validates, post_load, ValidationError
-from datetime import date, datetime, timedelta
+
+from env import SIGNIN_URL, PROJECTS_URL, PROFILE_URL, DEBUG_PROJECT
 
 log.basicConfig(format='%(levelname)s %(asctime)s %(message)s',
         datefmt='%d/%m/%Y %H:%M:%S',
@@ -28,8 +29,7 @@ log.basicConfig(format='%(levelname)s %(asctime)s %(message)s',
 class Intra(object):
 
     def __init__(self, login, password):
-        self.signin_url = 'https://signin.intra.42.fr/users/sign_in'
-        self.slot_url = "https://projects.intra.42.fr/projects/{project}/slots.json?start={start}&end={end}"
+        self.signin_url = SIGNIN_URL
         self.client = httpx.Client()
         self.login = login
         self.password = password
@@ -69,12 +69,13 @@ class Intra(object):
             return func(*args, **kwargs)
         return wrapper
 
+
     @check_signin
     def get_project_slots(self, project, start, end):
-        if project == 'debug_my_slots':
-            r = self.client.get('https://profile.intra.42.fr/slots.json?start={start}&end={end}'.format(start=start, end=end))
-        else:
-            r = self.client.get(self.slot_url.format(project=project, start=start, end=end))
+        get_slot_url = lambda x: PROFILE_URL if x == DEBUG_PROJECT else f"{PROJECTS_URL}/{project}"
+        r = self.client.get(
+            f"{get_slot_url(project)}/slots.json?start={start}&end={end}"
+        )
         slots = r.json()
         return slots
 
@@ -153,7 +154,7 @@ class Sender(object):
 
     def __init__(self, sender):
         self.sender = sender
-        for key, value in sender.items():
+        for key, value in self.sender.items():
             self.send_option = key
             self.sender_config = value
         self.bot = telegram.Bot(token=self.sender_config['token'])
@@ -170,7 +171,7 @@ class Checker(object):
 
     def __init__(self, config: Config):
         self.config = config
-        self.intra = Intra(config.login, config.password)
+        self.intra = Intra(self.config.login, self.config.password)
         self.sender = None
         if self.config.sender:
             self.sender = Sender(self.config.sender)
@@ -202,7 +203,7 @@ class Checker(object):
                         log.info(slot)
                         date = datetime.strptime(slot['start'], '%Y-%m-%dT%H:%M:00.000+01:00')
                         log.info("found slot for project %s, %s at %s" % (project, date.strftime('%d/%m/%Y'), date.strftime('%H:%M')))
-                        if (date.time() > config.start_dispo and date.time() < config.end_dispo):
+                        if (date.time() > self.config.start_dispo and date.time() < self.config.end_dispo):
                             if self.sender:
                                 if not self.config.avoid_spam or slot['id'] not in sent:
                                     log.info("send to %s" % self.sender.send_option)
