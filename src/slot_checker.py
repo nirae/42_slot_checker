@@ -175,7 +175,7 @@ class Checker(object):
         self.health_delay = 60
         self.health = threading.Thread(target=self.health_loop)
         self.errors = 0
-        self.errors_limit = 10
+        self.errors_limit = 2
 
     def health_loop(self):
         while True:
@@ -187,14 +187,12 @@ class Checker(object):
         while True:
             for project in self.config.projects:
                 slots = self.intra.get_project_slots(project, start=self.config.start, end=self.config.end)
-
-                if not slots:
+                if slots == False:
                     self.error()
-                    continue
                 elif 'error' in slots:
                     log.error(slots['error'])
+                    slots = None
                     self.error()
-                    continue
                 else:
                     self.clean_errors()
 
