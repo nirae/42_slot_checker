@@ -9,5 +9,5 @@ jobs:
         run: cp config_example.yml config.yml
       - name: docker build
         run: make build
-      - name: docker run
-        run: docker run -v $(pwd)/config.yml:/usr/src/app/config.yml slot_checker
+      - name: docker compose up
+        run: timeout --preserve-status 30 docker-compose up --exit-code-from slot_checker
