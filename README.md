@@ -79,7 +79,7 @@ projects:
 
 To send with `telegram`, you need a bot. [How to create a telegram bot?](https://fr.jeffprod.com/blog/2017/creer-un-bot-telegram/)
 
-Don't forget to talk to your bot one first time /!\
+:warning: Don't forget to talk to your bot one first time :warning:
 
 You need the `token` of your bot, and **your** `chat_id`
 To find your `chat_id`, initiate a conversation with the telegram bot @chatid_echo_bot
