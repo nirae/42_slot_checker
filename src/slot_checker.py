@@ -198,18 +198,17 @@ class Checker(object):
                     self.error()
                 else:
                     self.clean_errors()
-
-                for slot in slots:
-                    log.info(slot)
-                    date = datetime.strptime(slot['start'], '%Y-%m-%dT%H:%M:00.000+01:00')
-                    log.info("found slot for project %s, %s at %s" % (project, date.strftime('%d/%m/%Y'), date.strftime('%H:%M')))
-                    if (date.time() > config.start_dispo and date.time() < config.end_dispo):
-                        if self.sender:
-                            log.info("send to %s" % self.sender.send_option)
-                            message = "Slot found for <b>%s</b> project :\n <b>%s</b> at <b>%s</b>" % (project, date.strftime('%A %d/%m'), date.strftime('%H:%M'))
-                            self.sender.send(message)
-                    else:
-                        log.info("the slot is not in the disponibility range, not sending")
+                    for slot in slots:
+                        log.info(slot)
+                        date = datetime.strptime(slot['start'], '%Y-%m-%dT%H:%M:00.000+01:00')
+                        log.info("found slot for project %s, %s at %s" % (project, date.strftime('%d/%m/%Y'), date.strftime('%H:%M')))
+                        if (date.time() > config.start_dispo and date.time() < config.end_dispo):
+                            if self.sender:
+                                log.info("send to %s" % self.sender.send_option)
+                                message = "Slot found for <b>%s</b> project :\n <b>%s</b> at <b>%s</b>" % (project, date.strftime('%A %d/%m'), date.strftime('%H:%M'))
+                                self.sender.send(message)
+                        else:
+                            log.info("the slot is not in the disponibility range, not sending")
             time.sleep(self.config.refresh)
     
     def clean_errors(self):
