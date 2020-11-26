@@ -1,5 +1,7 @@
 # 42 Slot Checker
 
+![actions](https://github.com/nirae/42_slot_checker/workflows/Build/badge.svg)
+
 ## Usage
 
 ```

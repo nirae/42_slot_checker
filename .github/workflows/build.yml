@@ -1,0 +1,13 @@
+name: Build
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2 
+      - name: creating config file
+        run: cp config_example.yml config.yml
+      - name: docker build
+        run: make build
+      - name: docker compose up
+        run: timeout --preserve-status 30 docker-compose up --exit-code-from slot_checker
