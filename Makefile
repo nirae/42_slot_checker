@@ -1,4 +1,4 @@
-all: build run
+all: build up
 
 build:
 	docker build -t slot_checker .

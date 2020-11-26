@@ -1,0 +1,13 @@
+name: Build
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2 
+      - name: creating config file
+        run: cp config_example.yml config.yml
+      - name: docker build & up
+        run: make
+      - name: docker logs
+        run: docker logs 42_slot_checker_slot_checker_1
