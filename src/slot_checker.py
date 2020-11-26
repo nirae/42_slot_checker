@@ -1,31 +1,29 @@
 #! /usr/bin/env python3
 
+import re
 import os
 import sys
-import argparse as arg
-# https://python-telegram-bot.readthedocs.io/en/stable/
-import telegram
-import yaml
-import httpx
-# https://www.crummy.com/software/BeautifulSoup/bs4/doc/
-from bs4 import BeautifulSoup
-import logging as log
-# https://marshmallow.readthedocs.io/en/stable/
-from marshmallow import Schema, fields, validate, validates, post_load, ValidationError
 import time
 import threading
 from datetime import date, datetime, timedelta
-import re
-import signal
+
+import yaml
+import httpx
+# https://python-telegram-bot.readthedocs.io/en/stable/
+import telegram
+import logging as log
+import argparse as arg
+# https://www.crummy.com/software/BeautifulSoup/bs4/doc/
+from bs4 import BeautifulSoup
+# https://marshmallow.readthedocs.io/en/stable/
+from marshmallow.exceptions import ValidationError
+from marshmallow import Schema, fields, validate, validates, post_load, ValidationError
+from datetime import date, datetime, timedelta
 
 
-if 'SLOT_CHECKER_DEBUG' in os.environ:
-    log.basicConfig(format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S', level=log.DEBUG)
-    DEBUG = True
-else:
-    log.basicConfig(format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S', level=log.INFO)
-    DEBUG = False
-
+log.basicConfig(format='%(levelname)s %(asctime)s %(message)s',
+        datefmt='%d/%m/%Y %H:%M:%S',
+        level=log.INFO)
 
 
 class Intra(object):
@@ -235,16 +233,23 @@ if __name__ == "__main__":
         default='config.yml',
         help='config file'
     )
+    parser.add_argument('-v', '--verbose', action='store_true', help='include debugging logs')
     args = parser.parse_args()
+
+    if os.environ.get("SLOT_CHECKER_DEBUG") or args.verbose:
+        log.getLogger().setLevel(log.DEBUG)
+
+    try:
+        with open(args.config) as f:
+            data = yaml.load(f, Loader=yaml.FullLoader)
+        schema = ConfigSchema()
+        config = schema.load(data)
+        log.debug(f"CONFIGURATION : {config}")
+    except (FileNotFoundError, ValidationError) as e:
+        log.error("There seems to be a problem with your configuration file\n{e}")
+        log.info("Exit")
+        sys.exit(1)
     
-    with open(args.config) as f:
-        data = yaml.load(f, Loader=yaml.FullLoader)
-
     log.info("Starting the checker")
-
-    schema = ConfigSchema()
-    config = schema.load(data)
-    log.debug("CONFIGURATION :", vars(config))
-
     checker = Checker(config)
     checker.run()
