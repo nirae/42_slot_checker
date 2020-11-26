@@ -84,7 +84,7 @@ class Intra(object):
 
 class Config(object):
 
-    def __init__(self, login, password, projects, send=None, refresh=30, range=7, disponibility="00:00-23:59"):
+    def __init__(self, login, password, projects, send=None, refresh=30, range=7, disponibility="00:00-23:59", avoid_spam=False):
         self.login = login
         self.password = password
         self.refresh = refresh
@@ -92,6 +92,7 @@ class Config(object):
         self.sender = send
         self.start = date.today()
         self.end = date.today() + timedelta(days=range)
+        self.avoid_spam = avoid_spam
         try:
             hours = disponibility.split('-')
             self.start_dispo = datetime.strptime(hours[0], '%H:%M').time()
@@ -134,6 +135,7 @@ class ConfigSchema(Schema):
     refresh = fields.Int(required=False, default=30)
     range = fields.Int(required=False, default=7)
     disponibility = fields.Str(required=False, default="00:00-23:59")
+    avoid_spam = fields.Boolean(required=False)
 
     @post_load
     def create_processing(self, data, **kwargs):
@@ -184,6 +186,7 @@ class Checker(object):
 
     def run(self):
         self.health.start()
+        sent = []
         while True:
             for project in self.config.projects:
                 slots = self.intra.get_project_slots(project, start=self.config.start, end=self.config.end)
@@ -201,9 +204,13 @@ class Checker(object):
                         log.info("found slot for project %s, %s at %s" % (project, date.strftime('%d/%m/%Y'), date.strftime('%H:%M')))
                         if (date.time() > config.start_dispo and date.time() < config.end_dispo):
                             if self.sender:
-                                log.info("send to %s" % self.sender.send_option)
-                                message = "Slot found for <b>%s</b> project :\n <b>%s</b> at <b>%s</b>" % (project, date.strftime('%A %d/%m'), date.strftime('%H:%M'))
-                                self.sender.send(message)
+                                if not self.config.avoid_spam or slot['id'] not in sent:
+                                    log.info("send to %s" % self.sender.send_option)
+                                    message = "Slot found for <b>%s</b> project :\n <b>%s</b> at <b>%s</b>" % (project, date.strftime('%A %d/%m'), date.strftime('%H:%M'))
+                                    self.sender.send(message)
+                                    sent.append(slot['id'])
+                                else:
+                                    log.info("Slot details already sent once -> avoiding spam")
                         else:
                             log.info("the slot is not in the disponibility range, not sending")
             time.sleep(self.config.refresh)
