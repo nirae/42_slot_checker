@@ -10,4 +10,4 @@ jobs:
       - name: docker build
         run: make build
       - name: docker run
-        run: docker run slot_checker
+        run: docker run -v $(pwd)/config.yml:/usr/src/app/config.yml slot_checker
