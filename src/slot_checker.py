@@ -36,6 +36,7 @@ class Intra(object):
         self.connected = False
 
     def signin(self):
+        self.connected = True
         r = self.client.get(self.signin_url)
         soup = BeautifulSoup(r.content, 'html.parser')
         token = soup.find('input', {"name": "authenticity_token"})['value']
@@ -51,12 +52,13 @@ class Intra(object):
         soup = BeautifulSoup(r.content, 'html.parser')
         error = soup.find('div', {"class": "alert-danger"})
         if error:
-            log.error(error.text)
+            log.error("receive errors from the intra : %s" % error.text)
+            self.connected = False
             return False
         if r.status_code != 200:
-            log.error("can't connect to the intra")
+            log.error("can't connect to the intra, return code : %d" % r.status_code)
+            self.connected = False
             return False
-        self.connected = True
         return True
 
     def check_signin(func):
@@ -172,7 +174,9 @@ class Checker(object):
             self.sender = Sender(self.config.sender)
         self.health_delay = 60
         self.health = threading.Thread(target=self.health_loop)
-        
+        self.errors = 0
+        self.errors_limit = 10
+
     def health_loop(self):
         while True:
             log.info("[Health check] slot checker still alive")
@@ -183,11 +187,17 @@ class Checker(object):
         while True:
             for project in self.config.projects:
                 slots = self.intra.get_project_slots(project, start=self.config.start, end=self.config.end)
-                if slots == False:
-                    self.quit()
-                if 'error' in slots:
+
+                if not slots:
+                    self.error()
+                    continue
+                elif 'error' in slots:
                     log.error(slots['error'])
-                    self.quit()
+                    self.error()
+                    continue
+                else:
+                    self.clean_errors()
+
                 for slot in slots:
                     log.info(slot)
                     date = datetime.strptime(slot['start'], '%Y-%m-%dT%H:%M:00.000+01:00')
@@ -201,10 +211,19 @@ class Checker(object):
                         log.info("the slot is not in the disponibility range, not sending")
             time.sleep(self.config.refresh)
     
-    def quit(self):
-        log.info("Exit")
-        self.intra.close()
-        sys.exit(1)
+    def clean_errors(self):
+        self.errors = 0
+
+    def error(self):
+        if self.errors >= self.errors_limit:
+            log.error("too many errors, quitting")
+            self.intra.close()
+            try:
+                sys.exit(1)
+            except:
+                os._exit(1)
+        else:
+            self.errors += 1
 
 
 if __name__ == "__main__":
