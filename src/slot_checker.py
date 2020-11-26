@@ -154,7 +154,7 @@ class Sender(object):
 
     def __init__(self, sender):
         self.sender = sender
-        for key, value in sender.items():
+        for key, value in self.sender.items():
             self.send_option = key
             self.sender_config = value
         self.bot = telegram.Bot(token=self.sender_config['token'])
@@ -171,7 +171,7 @@ class Checker(object):
 
     def __init__(self, config: Config):
         self.config = config
-        self.intra = Intra(config.login, config.password)
+        self.intra = Intra(self.config.login, self.config.password)
         self.sender = None
         if self.config.sender:
             self.sender = Sender(self.config.sender)
@@ -203,7 +203,7 @@ class Checker(object):
                         log.info(slot)
                         date = datetime.strptime(slot['start'], '%Y-%m-%dT%H:%M:00.000+01:00')
                         log.info("found slot for project %s, %s at %s" % (project, date.strftime('%d/%m/%Y'), date.strftime('%H:%M')))
-                        if (date.time() > config.start_dispo and date.time() < config.end_dispo):
+                        if (date.time() > self.config.start_dispo and date.time() < self.config.end_dispo):
                             if self.sender:
                                 if not self.config.avoid_spam or slot['id'] not in sent:
                                     log.info("send to %s" % self.sender.send_option)
