@@ -17,11 +17,9 @@ usage: slot_checker.py [-h] [-c CONFIG] [-v]
 42 slot checker
 
 optional arguments:
-  -h, --help            show this help message and exit
-  -c CONFIG, --config CONFIG
-                        config file
-  -v, --verbose         include debugging logs
-
+  -h, --help                    show this help message and exit
+  -c CONFIG, --config CONFIG    config file
+  -v, --verbose                 include debugging logs
 ```
 If you have missing dependencies, install them with pip:
 ```
@@ -75,11 +73,13 @@ send:
     chat_id: '0000000000'
 projects:
   - "42cursus-ft_my_project"
+avoid_spam: true
 ```
 
 - `refresh` is the time to wait for refresh the slot page in seconds (default: 30)
 - `range` is the number of days during which you are looking for slots (default: 7)
 - `disponibility` is the range of the hours you want to be alerted (default: 00:00-23:59)
+- `avoid_spam`: if true, only one message will be sent for a given slot (default: False)
 
 ## Sending
 

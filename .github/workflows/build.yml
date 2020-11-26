@@ -10,4 +10,4 @@ jobs:
       - name: docker build
         run: make build
       - name: docker compose up
-        run: timeout --preserve-status 15 docker-compose up --exit-code-from slot_checker
+        run: timeout --preserve-status 15 docker-compose up --exit-code-from slot_checker || if [ $? -eq 42 ]; then exit 0; else exit 1; fi

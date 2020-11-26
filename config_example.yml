@@ -9,3 +9,4 @@ send:
     chat_id: '0000000000'
 projects:
   - "debug_my_slots"
+avoid_spam: true
