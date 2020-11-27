@@ -18,8 +18,8 @@ from bs4 import BeautifulSoup
 # https://marshmallow.readthedocs.io/en/stable/
 from marshmallow.exceptions import ValidationError
 from marshmallow import Schema, fields, validate, validates, post_load, ValidationError
-from datetime import date, datetime, timedelta
 
+from env import SIGNIN_URL, PROJECTS_URL, PROFILE_URL, DEBUG_PROJECT
 
 log.basicConfig(format='%(levelname)s %(asctime)s %(message)s',
         datefmt='%d/%m/%Y %H:%M:%S',
@@ -29,8 +29,7 @@ log.basicConfig(format='%(levelname)s %(asctime)s %(message)s',
 class Intra(object):
 
     def __init__(self, login, password):
-        self.signin_url = 'https://signin.intra.42.fr/users/sign_in'
-        self.slot_url = "https://projects.intra.42.fr/projects/{project}/slots.json?start={start}&end={end}"
+        self.signin_url = SIGNIN_URL
         self.client = httpx.Client()
         self.login = login
         self.password = password
@@ -70,12 +69,13 @@ class Intra(object):
             return func(*args, **kwargs)
         return wrapper
 
+
     @check_signin
     def get_project_slots(self, project, start, end):
-        if project == 'debug_my_slots':
-            r = self.client.get('https://profile.intra.42.fr/slots.json?start={start}&end={end}'.format(start=start, end=end))
-        else:
-            r = self.client.get(self.slot_url.format(project=project, start=start, end=end))
+        get_slot_url = lambda x: PROFILE_URL if x == DEBUG_PROJECT else f"{PROJECTS_URL}/{project}"
+        r = self.client.get(
+            f"{get_slot_url(project)}/slots.json?start={start}&end={end}"
+        )
         slots = r.json()
         return slots
 
