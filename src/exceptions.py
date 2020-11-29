@@ -25,11 +25,15 @@ def slot_checker_exception(exception, msg=None):
         log.warning("Traceback may be suppressed. Activate debug logs to see.")
     else:
         traceback.print_exc()
-    raise SlotCheckerException()
+    raise SlotCheckerException(exception)
 
 
 class SlotCheckerException(Exception):
     """Generic Slot Checker exception"""
+
+    def __init__(self, origin):
+        super().__init__()
+        self.error_code = 42 if origin == IntraFailedSignin else 1
 
 
 class IntraFailedSignin(ConnectionRefusedError):

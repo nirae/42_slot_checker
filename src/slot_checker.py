@@ -267,4 +267,4 @@ if __name__ == "__main__":
 
     except SlotCheckerException as e:
         log.error("Aborting following an error while running the Slot Checker")
-        sys.exit(1)
+        sys.exit(e.error_code)
