@@ -19,9 +19,10 @@ from bs4 import BeautifulSoup
 from marshmallow.exceptions import ValidationError
 from marshmallow import Schema, fields, validate, validates, post_load, ValidationError
 
+from exceptions import slot_checker_exception, IntraFailedSignin, SlotCheckerException, SlotCheckError
 from env import SIGNIN_URL, PROJECTS_URL, PROFILE_URL, DEBUG_PROJECT
 
-log.basicConfig(format='%(levelname)s %(asctime)s %(message)s',
+log.basicConfig(format='%(asctime)s %(levelname)7s %(message)s',
         datefmt='%d/%m/%Y %H:%M:%S',
         level=log.INFO)
 
@@ -30,36 +31,35 @@ class Intra(object):
 
     def __init__(self, login, password):
         self.signin_url = SIGNIN_URL
-        self.client = httpx.Client()
+        self.client = httpx.Client(timeout=3.05)
         self.login = login
         self.password = password
         self.connected = False
 
     def signin(self):
-        self.connected = True
-        r = self.client.get(self.signin_url)
-        soup = BeautifulSoup(r.content, 'html.parser')
-        token = soup.find('input', {"name": "authenticity_token"})['value']
-        cookies = r.cookies
-        data = {
-            'utf8':	"✓",
-            'authenticity_token': token,
-            'user[login]': self.login,
-            'user[password]': self.password,
-            'commit': 'Sign+in'
-        }
-        r = self.client.post(self.signin_url, data=data, cookies=cookies)
-        soup = BeautifulSoup(r.content, 'html.parser')
-        error = soup.find('div', {"class": "alert-danger"})
+        try:
+            r = self.client.get(self.signin_url)
+            r.raise_for_status()
+            soup = BeautifulSoup(r.content, "html.parser")
+            token = soup.find("input", {"name": "authenticity_token"})["value"]
+            cookies = r.cookies
+            data = {
+                "utf8": "✓",
+                "authenticity_token": token,
+                "user[login]": self.login,
+                "user[password]": self.password,
+                "commit": "Sign+in",
+            }
+            r = self.client.post(self.signin_url, data=data, cookies=cookies, timeout=3.05)
+        except httpx.RequestError as err:
+            slot_checker_exception(err, "Network error while logging in the Intra")
+        soup = BeautifulSoup(r.content, "html.parser")
+        error = soup.find("div", {"class": "alert-danger"})
         if error:
-            log.error("receive errors from the intra : %s" % error.text)
-            self.connected = False
-            return False
-        if r.status_code != 200:
-            log.error("can't connect to the intra, return code : %d" % r.status_code)
-            self.connected = False
-            return False
-        return True
+            slot_checker_exception(IntraFailedSignin, error.text)
+        log.info("Successfully logged in the Intra as %s", self.login)
+        self.connected = True
+        return self.connected
 
     def check_signin(func):
         def wrapper(*args, **kwargs):
@@ -72,11 +72,15 @@ class Intra(object):
 
     @check_signin
     def get_project_slots(self, project, start, end):
-        get_slot_url = lambda x: PROFILE_URL if x == DEBUG_PROJECT else f"{PROJECTS_URL}/{project}"
-        r = self.client.get(
-            f"{get_slot_url(project)}/slots.json?start={start}&end={end}"
-        )
-        slots = r.json()
+        try:
+            get_slot_url = lambda x: PROFILE_URL if x == DEBUG_PROJECT else f"{PROJECTS_URL}/{project}"
+            r = self.client.get(
+                f"{get_slot_url(project)}/slots.json?start={start}&end={end}", timeout=3.05
+            )
+            slots = r.json()
+        except httpx.RequestError as err:
+            slot_checker_exception(err, "Unable to retrieve available projects slots")
+
         return slots
 
     def close(self):
@@ -177,6 +181,9 @@ class Checker(object):
             self.sender = Sender(self.config.sender)
         self.health_delay = 60
         self.health = threading.Thread(target=self.health_loop)
+        # Needed so that calls to sys.exit() don't hang with never-ending thread
+        # https://stackoverflow.com/questions/38804988/what-does-sys-exit-really-do-with-multiple-threads
+        self.health.daemon = True
         self.errors = 0
         self.errors_limit = 2
 
@@ -194,9 +201,8 @@ class Checker(object):
                 if slots == False:
                     self.error()
                 elif 'error' in slots:
-                    log.error(slots['error'])
                     slots = None
-                    self.error()
+                    self.error(slots['error'])
                 else:
                     self.clean_errors()
                     for slot in slots:
@@ -219,16 +225,13 @@ class Checker(object):
     def clean_errors(self):
         self.errors = 0
 
-    def error(self):
+    def error(self, msg=None):
+        if msg is not None:
+            log.error(msg)
         if self.errors >= self.errors_limit:
-            log.error("too many errors, quitting")
             self.intra.close()
-            try:
-                sys.exit(1)
-            except:
-                os._exit(1)
-        else:
-            self.errors += 1
+            slot_checker_exception(SlotCheckError, "Too many errors while checking for available slots")
+        self.errors += 1
 
 
 if __name__ == "__main__":
@@ -247,16 +250,21 @@ if __name__ == "__main__":
         log.getLogger().setLevel(log.DEBUG)
 
     try:
-        with open(args.config) as f:
-            data = yaml.load(f, Loader=yaml.FullLoader)
-        schema = ConfigSchema()
-        config = schema.load(data)
-        log.debug(f"CONFIGURATION : {config}")
-    except (FileNotFoundError, ValidationError) as e:
-        log.error("There seems to be a problem with your configuration file\n{e}")
-        log.info("Exit")
+        try:
+
+            with open(args.config) as f:
+                data = yaml.load(f, Loader=yaml.FullLoader)
+            schema = ConfigSchema()
+            config = schema.load(data)
+        except (FileNotFoundError, ValidationError) as e:
+            slot_checker_exception(
+                e, "There seems to be a problem with your configuration file"
+            )
+
+        log.info("Starting the checker")
+        checker = Checker(config)
+        checker.run()
+
+    except SlotCheckerException as e:
+        log.error("Aborting following an error while running the Slot Checker")
         sys.exit(1)
-    
-    log.info("Starting the checker")
-    checker = Checker(config)
-    checker.run()
