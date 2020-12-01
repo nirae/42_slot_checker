@@ -79,7 +79,7 @@ class Intra(object):
                 f"{get_slot_url(project)}/slots.json?start={start}&end={end}", timeout=3.05
             )
             slots = r.json()
-        except httpx.RequestError as err:
+        except (httpx.RequestError, httpx.ReadTimeout, httpx.ConnectError) as err:
             if retries < max_retries:
                 log.debug("Failed attempt #%d to get projects slots (max %d)", retries, max_retries)
                 self.get_project_slots(project, start, end, retries + 1)
