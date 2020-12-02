@@ -5,11 +5,6 @@ services:
     image: slot_checker
     # environment:
     #   - SLOT_CHECKER_DEBUG=1
-    configs:
-      - source: $PWD/config.yml
-        target: /usr/src/app/config.yml
     volumes:
-      - type: bind
-        source: $PWD/config.yml
-        target: /usr/src/app/config.yml
+        - $PWD:/usr/src/app
     restart: always
