@@ -31,10 +31,22 @@ class Intra(object):
 
     def __init__(self, login, password):
         self.signin_url = SIGNIN_URL
-        self.client = httpx.Client(timeout=3.05)
         self.login = login
         self.password = password
         self.connected = False
+        self._client = None
+        self.signin()
+
+    @property
+    def client(self):
+        """Get httpx client to connect to the intra
+
+        Initializes the client only if none is active.
+        """
+        if self._client is None:
+            self._client = httpx.Client()
+        return self._client
+
 
     def signin(self):
         try:
@@ -50,7 +62,7 @@ class Intra(object):
                 "user[password]": self.password,
                 "commit": "Sign+in",
             }
-            r = self.client.post(self.signin_url, data=data, cookies=cookies, timeout=3.05)
+            r = self._client.post(self.signin_url, data=data, cookies=cookies, timeout=3.05)
         except httpx.RequestError as err:
             slot_checker_exception(err, "Network error while logging in the Intra")
         soup = BeautifulSoup(r.content, "html.parser")
@@ -58,19 +70,8 @@ class Intra(object):
         if error:
             slot_checker_exception(IntraFailedSignin, error.text)
         log.info("Successfully logged in the Intra as %s", self.login)
-        self.connected = True
-        return self.connected
-
-    def check_signin(func):
-        def wrapper(*args, **kwargs):
-            if not args[0].connected:
-                if not args[0].signin():
-                    return False
-            return func(*args, **kwargs)
-        return wrapper
 
 
-    @check_signin
     def get_project_slots(self, project, start, end, retries=0):
         max_retries = 10
         try:
@@ -90,10 +91,6 @@ class Intra(object):
                 time.sleep(2)
                 return self.get_project_slots(project, start, end, retries + 1)
             slot_checker_exception(err, "Unable to retrieve available projects slots")
-
-
-    def close(self):
-        self.client.close()
 
 
 class Config(object):
@@ -154,6 +151,7 @@ class Config(object):
         self.start = date.today()
         self.end = date.today() + timedelta(days=range)
         self.avoid_spam = avoid_spam
+        self.mtime = time.time()
         try:
             hours = disponibility.split('-')
             self.start_dispo = datetime.strptime(hours[0], '%H:%M').time()
@@ -164,7 +162,14 @@ class Config(object):
             self.end_dispo = None
 
 
+    @property
+    def updated(self):
+        """Check if config was updated since last loaded"""
 
+        if self.mtime < os.path.getmtime(PATH_CONFIG):
+            log.info("Config file has changed since starting the Slot Checkout")
+            return True
+        return False
 
 
     @staticmethod
@@ -205,18 +210,29 @@ class Sender(object):
 class Checker(object):
 
     def __init__(self, config: Config):
+        log.info("Initializing the checker")
         self.config = config
-        self.intra = Intra(self.config.login, self.config.password)
-        self.sender = None
-        if self.config.sender:
-            self.sender = Sender(self.config.sender)
+        self._intra = None
+        self._sender = None
         self.health_delay = 60
         self.health = threading.Thread(target=self.health_loop)
         # Needed so that calls to sys.exit() don't hang with never-ending thread
         # https://stackoverflow.com/questions/38804988/what-does-sys-exit-really-do-with-multiple-threads
         self.health.daemon = True
-        self.errors = 0
-        self.errors_limit = 2
+        self.health.start()
+
+    @property
+    def sender(self):
+        if self.config.sender and self._sender is None:
+            self._sender = Sender(self.config.sender)
+        return self._sender
+
+    @property
+    def intra(self):
+        if self._intra is None or self._intra.login != self.config.login or self._intra.password != self.config.password:
+            self._intra = Intra(self.config.login, self.config.password)
+        return self._intra
+
 
     def health_loop(self):
         while True:
@@ -224,34 +240,29 @@ class Checker(object):
             time.sleep(self.health_delay)
 
     def run(self):
-        self.health.start()
+        log.info("Check for available slots")
         sent = []
-        while True:
-            for project in self.config.projects:
-                slots = self.intra.get_project_slots(project, start=self.config.start, end=self.config.end)
-                if slots == False:
-                    self.error()
-                elif 'error' in slots:
-                    slots = None
-                    self.error(slots['error'])
-                else:
-                    self.clean_errors()
+        with self.intra.client:
+            while True:
+                if self.config.updated:
+                    self.config = Config.load()
+                    return self.run()
+                for project in self.config.projects:
+                    slots = self.intra.get_project_slots(project, start=self.config.start, end=self.config.end)
                     for slot in slots:
-                        log.info(slot)
                         date = datetime.strptime(slot['start'], '%Y-%m-%dT%H:%M:00.000+01:00')
-                        log.info("found slot for project %s, %s at %s" % (project, date.strftime('%d/%m/%Y'), date.strftime('%H:%M')))
+                        log.info("found slot for project %s, %s at %s\n%s" % (project, date.strftime('%d/%m/%Y'), date.strftime('%H:%M'), slot))
                         if (date.time() > self.config.start_dispo and date.time() < self.config.end_dispo):
-                            if self.sender:
-                                if not self.config.avoid_spam or slot['id'] not in sent:
-                                    log.info("send to %s" % self.sender.send_option)
-                                    message = "Slot found for <b>%s</b> project :\n <b>%s</b> at <b>%s</b>" % (project, date.strftime('%A %d/%m'), date.strftime('%H:%M'))
-                                    self.sender.send(message)
-                                    sent.append(slot['id'])
-                                else:
-                                    log.info("Slot details already sent once -> avoiding spam")
+                            if not self.config.avoid_spam or slot['id'] not in sent:
+                                log.info("send to %s" % self.sender.send_option)
+                                message = "Slot found for <b>%s</b> project :\n <b>%s</b> at <b>%s</b>" % (project, date.strftime('%A %d/%m'), date.strftime('%H:%M'))
+                                self.sender.send(message)
+                                sent.append(slot['id'])
+                            else:
+                                log.info("Slot details already sent once -> avoiding spam")
                         else:
                             log.info("the slot is not in the disponibility range, not sending")
-            time.sleep(self.config.refresh)
+                time.sleep(self.config.refresh)
 
 
 if __name__ == "__main__":
@@ -261,12 +272,9 @@ if __name__ == "__main__":
 
     if os.environ.get("SLOT_CHECKER_DEBUG") or args.verbose:
         log.getLogger().setLevel(log.DEBUG)
-
     try:
-        log.info("Starting the checker")
         checker = Checker(Config.load())
         checker.run()
-
     except SlotCheckerException as e:
         log.error("Aborting following an error while running the Slot Checker")
         sys.exit(e.error_code)
