@@ -20,7 +20,7 @@ from marshmallow.exceptions import ValidationError
 from marshmallow import Schema, fields, validate, validates, post_load, ValidationError
 
 from exceptions import slot_checker_exception, IntraFailedSignin, SlotCheckerException, SlotCheckError
-from env import SIGNIN_URL, PROJECTS_URL, PROFILE_URL, DEBUG_PROJECT
+from env import SIGNIN_URL, PROJECTS_URL, PROFILE_URL, DEBUG_PROJECT, PATH_CONFIG
 
 log.basicConfig(format='%(asctime)s %(levelname)7s %(message)s',
         datefmt='%d/%m/%Y %H:%M:%S',
@@ -79,6 +79,10 @@ class Intra(object):
                 f"{get_slot_url(project)}/slots.json?start={start}&end={end}", timeout=3.05
             )
             slots = r.json()
+            if r.status_code == 404:
+                log.warning("Project %s does not exist", project)
+            elif r.status_code == 403:
+                log.warning("You don't have access to any correction slots for project %s", project)
             return slots
         except (httpx.RequestError, httpx.ReadTimeout, httpx.ConnectError) as err:
             if retries < max_retries:
@@ -93,6 +97,53 @@ class Intra(object):
 
 
 class Config(object):
+
+    class Schema(Schema):
+
+        senders = ['telegram']
+        telegram_options = ['chat_id', 'token']
+
+        login = fields.Str(required=True)
+        password = fields.Str(required=True)
+        projects = fields.List(
+            fields.Str(
+                required=True
+            ),
+            required=True
+        )
+        send = fields.Dict(
+            keys=fields.Str(
+                required=True,
+                validate=validate.OneOf(senders)
+            ),
+            values=fields.Dict(
+                keys=fields.Str(
+                    required=True,
+                    validate=validate.OneOf(telegram_options)
+                ),
+                values=fields.Str(
+                    required=True
+                ),
+                required=True
+            ),
+            required=False
+        )
+        refresh = fields.Int(required=False, default=30)
+        range = fields.Int(required=False, default=7)
+        disponibility = fields.Str(required=False, default="00:00-23:59")
+        avoid_spam = fields.Boolean(required=False)
+
+        @post_load
+        def create_processing(self, data, **kwargs):
+            return Config(**data)
+
+        @validates('disponibility')
+        def validate_disponibility(self, disponibility):
+            rx = re.compile(r'^([0-9]{2}:[0-9]{2}-[0-9]{2}:[0-9]{2})$')
+            match = rx.search(disponibility)
+            if not match:
+                raise ValidationError("disponibility not valid")
+
 
     def __init__(self, login, password, projects, send=None, refresh=30, range=7, disponibility="00:00-23:59", avoid_spam=False):
         self.login = login
@@ -112,51 +163,26 @@ class Config(object):
             self.start_dispo = None
             self.end_dispo = None
 
-class ConfigSchema(Schema):
 
-    senders = ['telegram']
-    telegram_options = ['chat_id', 'token']
 
-    login = fields.Str(required=True)
-    password = fields.Str(required=True)
-    projects = fields.List(
-        fields.Str(
-            required=True
-        ),
-        required=True
-    )
-    send = fields.Dict(
-        keys=fields.Str(
-            required=True,
-            validate=validate.OneOf(senders)
-        ),
-        values=fields.Dict(
-            keys=fields.Str(
-                required=True,
-                validate=validate.OneOf(telegram_options)
-            ),
-            values=fields.Str(
-                required=True
-            ),
-            required=True
-        ),
-        required=False
-    )
-    refresh = fields.Int(required=False, default=30)
-    range = fields.Int(required=False, default=7)
-    disponibility = fields.Str(required=False, default="00:00-23:59")
-    avoid_spam = fields.Boolean(required=False)
 
-    @post_load
-    def create_processing(self, data, **kwargs):
-        return Config(**data)
 
-    @validates('disponibility')
-    def validate_disponibility(self, disponibility):
-        rx = re.compile(r'^([0-9]{2}:[0-9]{2}-[0-9]{2}:[0-9]{2})$')
-        match = rx.search(disponibility)
-        if not match:
-            raise ValidationError("disponibility not valid")
+    @staticmethod
+    def load():
+        """Load configuration from file
+
+        Returns a Config object
+        """
+        log.info("Loading configuration from file %s", PATH_CONFIG)
+        try:
+            with open(PATH_CONFIG) as f:
+                data = yaml.load(f, Loader=yaml.FullLoader)
+            schema = Config.Schema()
+            return schema.load(data)
+        except (FileNotFoundError, ValidationError, yaml.parser.ParserError) as e:
+            slot_checker_exception(
+                e, "There seems to be a problem with your configuration file"
+            )
 
 
 class Sender(object):
@@ -226,28 +252,10 @@ class Checker(object):
                         else:
                             log.info("the slot is not in the disponibility range, not sending")
             time.sleep(self.config.refresh)
-    
-    def clean_errors(self):
-        self.errors = 0
-
-    def error(self, msg=None):
-        if msg is not None:
-            log.error(msg)
-        if self.errors >= self.errors_limit:
-            self.intra.close()
-            slot_checker_exception(SlotCheckError, "Too many errors while checking for available slots")
-        self.errors += 1
 
 
 if __name__ == "__main__":
     parser = arg.ArgumentParser(description="42 slot checker")
-    parser.add_argument(
-        '-c',
-        '--config',
-        type=str,
-        default='config.yml',
-        help='config file'
-    )
     parser.add_argument('-v', '--verbose', action='store_true', help='include debugging logs')
     args = parser.parse_args()
 
@@ -255,19 +263,8 @@ if __name__ == "__main__":
         log.getLogger().setLevel(log.DEBUG)
 
     try:
-        try:
-
-            with open(args.config) as f:
-                data = yaml.load(f, Loader=yaml.FullLoader)
-            schema = ConfigSchema()
-            config = schema.load(data)
-        except (FileNotFoundError, ValidationError) as e:
-            slot_checker_exception(
-                e, "There seems to be a problem with your configuration file"
-            )
-
         log.info("Starting the checker")
-        checker = Checker(config)
+        checker = Checker(Config.load())
         checker.run()
 
     except SlotCheckerException as e:

@@ -1,5 +1,6 @@
 """Environment for slot_checker"""
 
+PATH_CONFIG = "config.yml"
 
 SIGNIN_URL = "https://signin.intra.42.fr/users/sign_in"
 PROJECTS_URL = "https://projects.intra.42.fr/projects"
