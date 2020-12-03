@@ -1,6 +1,7 @@
 # 42 Slot Checker
 
-![actions](https://github.com/nirae/42_slot_checker/workflows/Build/badge.svg)
+![Build](https://github.com/nirae/42_slot_checker/workflows/Build/badge.svg)
+![Black](https://github.com/nirae/42_slot_checker/workflows/Black/badge.svg)
 
 ## Usage
 
@@ -15,10 +16,13 @@ optional arguments:
   -c CONFIG, --config CONFIG    config file
   -v, --verbose                 include debugging logs
 ```
+
 If you have missing dependencies, install them with pip:
+
 ```
 pip install -r requirements.txt
 ```
+
 or consider using a virtual environment.
 
 ## Usage with Docker
@@ -27,6 +31,7 @@ Full set-up is provided with Docker, docker-compose and Makefile.
 If you don't have Docker and docker-compose, check out the official [Docker](https://docs.docker.com/get-docker/) and [Docker-Compose](https://docs.docker.com/compose/install/) doc and follow the guidelines for your distribution.
 
 Then you can run one of the makefile rules:
+
 ```
 # Build and up container
 make up
@@ -34,6 +39,7 @@ make up
 # Build and up container in detached mode
 make upd
 ```
+
 If you don't have Docker and docker-compose, check out the official [Docker](https://docs.docker.com/get-docker/) and [Docker-Compose](https://docs.docker.com/compose/install/) doc and follow the guidelines for your distribution.
 
 ## Configuration
@@ -47,8 +53,8 @@ login: "my_42_login"
 password: "my_42_password"
 send:
   telegram:
-    token: '000000000:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
-    chat_id: '0000000000'
+    token: "000000000:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    chat_id: "0000000000"
 projects:
   - "42cursus-ft_my_project"
 ```
@@ -63,8 +69,8 @@ range: 7
 disponibility: "09:00-20:00"
 send:
   telegram:
-    token: '000000000:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
-    chat_id: '0000000000'
+    token: "000000000:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    chat_id: "0000000000"
 projects:
   - "42cursus-ft_my_project"
 avoid_spam: true
@@ -86,17 +92,40 @@ To find your `chat_id`, initiate a conversation with the telegram bot @chatid_ec
 
 ## Debug
 
-Set the environment variable `SLOT_CHECKER_DEBUG` to get more detailed logs. 
+Set the environment variable `SLOT_CHECKER_DEBUG` to get more detailed logs.
 
 You can also use your slot page instead of a project slot page by choosing `debug_my_slots` in the `projects` option in the yaml configuration file. You just have to add some slots et you will see your slots to debug
 To get more detailed logs:
+
 - with docker: set the environment variable `SLOT_CHECKER_DEBUG` in the docker-compose.yml
 - without docker: run the slot_checker with its --verbose option.
 
 Moreover, your slot page instead of a project slot page. You just have to add some slots and you will see your slots to debug
 
+## Dev
+
+If you are lucky enough to contribute to this project, be aware that among other things, the build stage will check that your code is blacked.
+
+To black your files:
+
+```
+# Inside the root of your project directory
+# Note the use of a containerized black to avoid OS-related differences
+docker run --rm -v (pwd):/data cytopia/black .
+```
+
+To ensure your code is always blacked, consider using git pre-commit hooks:
+
+```
+# if you created a virtual env from the requirements.txt, you don't need to do this
+pip install pre-commit
+```
+The repo is already configured to run several checks prior to committing.
+If these checks fail, the commit is cancelled but files are formatted.
+
+
 ## TODO
 
 - [] add discord on senders
 - [x] log every x minutes the bot is alive
-- [] custom header with referer, user-agent... 
+- [] custom header with referer, user-agent...
