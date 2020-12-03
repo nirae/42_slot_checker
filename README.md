@@ -2,12 +2,6 @@
 
 ![actions](https://github.com/nirae/42_slot_checker/workflows/Build/badge.svg)
 
-## Docker
-
-```
-make build && make up
-```
-
 ## Usage
 
 ```
@@ -20,6 +14,7 @@ optional arguments:
   -h, --help                    show this help message and exit
   -c CONFIG, --config CONFIG    config file
   -v, --verbose                 include debugging logs
+
 ```
 If you have missing dependencies, install them with pip:
 ```

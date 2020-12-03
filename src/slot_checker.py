@@ -72,21 +72,21 @@ class Intra(object):
 
     @check_signin
     def get_project_slots(self, project, start, end, retries=0):
-        max_retries = 5
+        max_retries = 10
         try:
             get_slot_url = lambda x: PROFILE_URL if x == DEBUG_PROJECT else f"{PROJECTS_URL}/{project}"
             r = self.client.get(
                 f"{get_slot_url(project)}/slots.json?start={start}&end={end}", timeout=3.05
             )
             slots = r.json()
-        except httpx.RequestError as err:
+            return slots
+        except (httpx.RequestError, httpx.ReadTimeout, httpx.ConnectError) as err:
             if retries < max_retries:
                 log.debug("Failed attempt #%d to get projects slots (max %d)", retries, max_retries)
-                self.get_project_slots(project, start, end, retries + 1)
-            else:
-                slot_checker_exception(err, "Unable to retrieve available projects slots")
+                time.sleep(2)
+                return self.get_project_slots(project, start, end, retries + 1)
+            slot_checker_exception(err, "Unable to retrieve available projects slots")
 
-        return slots
 
     def close(self):
         self.client.close()
