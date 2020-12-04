@@ -132,7 +132,7 @@ class Config:
             required=False,
         )
         refresh = fields.Int(required=False, default=30)
-        range = fields.Int(required=False, default=7)
+        check_range = fields.Int(required=False, default=7)
         disponibility = fields.Str(required=False, default="00:00-23:59")
         avoid_spam = fields.Boolean(required=False)
 
@@ -157,7 +157,7 @@ class Config:
         projects,
         send=None,
         refresh=30,
-        range=7,
+        check_range=7,
         disponibility="00:00-23:59",
         avoid_spam=False,
     ):
@@ -170,7 +170,7 @@ class Config:
         self.projects = projects
         self.sender = send
         self.start = date.today()
-        self.end = date.today() + timedelta(days=range)
+        self.end = date.today() + timedelta(days=check_range)
         self.avoid_spam = avoid_spam
         self.mtime = time.time()
         try:
