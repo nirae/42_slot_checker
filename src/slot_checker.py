@@ -137,7 +137,7 @@ class Config:
         avoid_spam = fields.Boolean(required=False)
 
         @post_load
-        def create_processing(self, data, **kwargs):
+        def create_processing(self, data, **_):
             # pylint: disable=no-self-use
             # self is required for the Marshmallow decorator
 
