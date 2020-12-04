@@ -31,14 +31,14 @@ log.basicConfig(
 )
 
 
-class Intra(object):
+class Intra:
     def __init__(self, login, password):
         self.signin_url = SIGNIN_URL
         self.login = login
         self.password = password
         self.connected = False
         self._client = None
-        self.signin()
+        self._signin()
 
     @property
     def client(self):
@@ -50,7 +50,7 @@ class Intra(object):
             self._client = httpx.Client()
         return self._client
 
-    def signin(self):
+    def _signin(self):
         try:
             r = self.client.get(self.signin_url)
             r.raise_for_status()
@@ -108,7 +108,7 @@ class Intra(object):
             slot_checker_exception(err, "Unable to retrieve available projects slots")
 
 
-class Config(object):
+class Config:
     class Schema(Schema):
 
         senders = ["telegram"]
@@ -200,7 +200,6 @@ class Config(object):
             )
 
 
-class Sender(object):
     def __init__(self, sender):
         self.sender = sender
         for key, value in self.sender.items():
@@ -218,7 +217,7 @@ class Sender(object):
             self.send_telegram(message)
 
 
-class Checker(object):
+class Checker:
     def __init__(self, config: Config):
         log.info("Initializing the checker")
         self.config = config
