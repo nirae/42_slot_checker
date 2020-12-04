@@ -177,8 +177,8 @@ class Config:
             hours = disponibility.split("-")
             self.start_dispo = datetime.strptime(hours[0], "%H:%M").time()
             self.end_dispo = datetime.strptime(hours[1], "%H:%M").time()
-        except:
-            log.error("disponibility hours is not valid : %s" % disponibility)
+        except ValidationError:
+            log.error("disponibility hours is not valid : %s", disponibility)
             self.start_dispo = None
             self.end_dispo = None
 
