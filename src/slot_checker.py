@@ -273,29 +273,25 @@ class Checker:
                         project, start=self.config.start, end=self.config.end
                     )
                     for slot in slots:
-                        date = datetime.strptime(
+                        slot_date = datetime.strptime(
                             slot["start"], "%Y-%m-%dT%H:%M:00.000+01:00"
                         )
                         log.info(
-                            "found slot for project %s, %s at %s\n%s"
-                            % (
-                                project,
-                                date.strftime("%d/%m/%Y"),
-                                date.strftime("%H:%M"),
-                                slot,
-                            )
+                            "found slot for project %s, %s at %s\n%s",
+                            project,
+                            slot_date.strftime("%d/%m/%Y"),
+                            slot_date.strftime("%H:%M"),
+                            slot,
                         )
                         if (
-                            date.time() > self.config.start_dispo
-                            and date.time() < self.config.end_dispo
+                            slot_date.time() > self.config.start_dispo
+                            and slot_date.time() < self.config.end_dispo
                         ):
                             if not self.config.avoid_spam or slot["id"] not in sent:
-                                log.info("send to %s" % self.sender.send_option)
-                                message = "Slot found for <b>%s</b> project :\n <b>%s</b> at <b>%s</b>" % (
-                                    project,
-                                    date.strftime("%A %d/%m"),
-                                    date.strftime("%H:%M"),
-                                )
+                                log.info("send to %s", self.sender.send_option)
+                                message = f"Slot found for <b>{project}</b> project :\n \
+                                        <b>{slot_date.strftime('%A %d/%m')}</b> at \
+                                        <b>{slot_date.strftime('%H:%M')}</b>"
                                 self.sender.send(message)
                                 sent.append(slot["id"])
                             else:
