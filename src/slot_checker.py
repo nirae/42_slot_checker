@@ -52,11 +52,11 @@ class Intra:
 
     def _signin(self):
         try:
-            r = self.client.get(self.signin_url)
-            r.raise_for_status()
-            soup = BeautifulSoup(r.content, "html.parser")
+            resp = self.client.get(self.signin_url)
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.content, "html.parser")
             token = soup.find("input", {"name": "authenticity_token"})["value"]
-            cookies = r.cookies
+            cookies = resp.cookies
             data = {
                 "utf8": "✓",
                 "authenticity_token": token,
@@ -64,12 +64,12 @@ class Intra:
                 "user[password]": self.password,
                 "commit": "Sign+in",
             }
-            r = self._client.post(
+            resp = self._client.post(
                 self.signin_url, data=data, cookies=cookies, timeout=3.05
             )
         except httpx.RequestError as err:
             slot_checker_exception(err, "Network error while logging in the Intra")
-        soup = BeautifulSoup(r.content, "html.parser")
+        soup = BeautifulSoup(resp.content, "html.parser")
         error = soup.find("div", {"class": "alert-danger"})
         if error:
             slot_checker_exception(IntraFailedSignin, error.text)
@@ -83,14 +83,14 @@ class Intra:
                 if x == DEBUG_PROJECT
                 else f"{PROJECTS_URL}/{project}"
             )
-            r = self.client.get(
+            resp = self.client.get(
                 f"{get_slot_url(project)}/slots.json?start={start}&end={end}",
                 timeout=3.05,
             )
-            slots = r.json()
-            if r.status_code == 404:
+            slots = resp.json()
+            if resp.status_code == 404:
                 log.warning("Project %s does not exist", project)
-            elif r.status_code == 403:
+            elif resp.status_code == 403:
                 log.warning(
                     "You don't have access to any correction slots for project %s",
                     project,
@@ -139,8 +139,8 @@ class Config:
 
         @validates("disponibility")
         def validate_disponibility(self, disponibility):
-            rx = re.compile(r"^([0-9]{2}:[0-9]{2}-[0-9]{2}:[0-9]{2})$")
-            match = rx.search(disponibility)
+            regex = re.compile(r"^([0-9]{2}:[0-9]{2}-[0-9]{2}:[0-9]{2})$")
+            match = regex.search(disponibility)
             if not match:
                 raise ValidationError("disponibility not valid")
 
@@ -190,13 +190,13 @@ class Config:
         """
         log.info("Loading configuration from file %s", PATH_CONFIG)
         try:
-            with open(PATH_CONFIG) as f:
-                data = yaml.load(f, Loader=yaml.FullLoader)
+            with open(PATH_CONFIG) as config:
+                data = yaml.load(config, Loader=yaml.FullLoader)
             schema = Config.Schema()
             return schema.load(data)
-        except (FileNotFoundError, ValidationError, yaml.parser.ParserError) as e:
+        except (FileNotFoundError, ValidationError, yaml.parser.ParserError) as err:
             slot_checker_exception(
-                e, "There seems to be a problem with your configuration file"
+                err, "There seems to be a problem with your configuration file"
             )
 
 
@@ -312,6 +312,6 @@ if __name__ == "__main__":
     try:
         checker = Checker(Config.load())
         checker.run()
-    except SlotCheckerException as e:
+    except SlotCheckerException as err:
         log.error("Aborting following an error while running the Slot Checker")
-        sys.exit(e.error_code)
+        sys.exit(err.error_code)
