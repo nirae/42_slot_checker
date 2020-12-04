@@ -1,5 +1,7 @@
 #! /usr/bin/env python3
 
+"""Slot checker for 42 projects"""
+
 import re
 import os
 import sys
@@ -32,7 +34,14 @@ log.basicConfig(
 
 
 class Intra:
+    """Handle connection to the Intra"""
+
     def __init__(self, login, password):
+        """Sign into the intra
+
+        If authentication changes while this connection is open, a new Intra should be initialized
+        """
+
         self.signin_url = SIGNIN_URL
         self.login = login
         self.password = password
@@ -42,7 +51,7 @@ class Intra:
 
     @property
     def client(self):
-        """Get httpx client to connect to the intra
+        """Set up an httpx client to connect to the Intra
 
         Initializes the client only if none is active.
         """
@@ -51,6 +60,11 @@ class Intra:
         return self._client
 
     def _signin(self):
+        """Sign into the intra
+
+        Raises an error in case of any httpx related network error or wrong authentication
+        """
+
         try:
             resp = self.client.get(self.signin_url)
             resp.raise_for_status()
@@ -76,6 +90,19 @@ class Intra:
         log.info("Successfully logged in the Intra as %s", self.login)
 
     def get_project_slots(self, project, start, end, retries=0):
+        """Query a project page for available evaluation slots
+
+        Return status code 404 (unknown project) and 403 (unavailable corrections),
+        trigger a warning log.
+
+        Raises an error in case of any httpx related network error.
+
+        Args:
+            - start: start of the disponibility period
+            - end: end of the disponibility period
+            - retries: number of retries in case of network error
+        """
+
         max_retries = 10
         try:
             get_slot_url = (
@@ -109,10 +136,13 @@ class Intra:
 
 
 class Config:
+    """Load and check configuration"""
+
     # pylint: disable=too-many-instance-attributes
     # Nine is reasonable in this case.
 
     class Schema(Schema):
+        """Template to check that configuration is valid"""
 
         senders = ["telegram"]
         telegram_options = ["chat_id", "token"]
@@ -138,6 +168,7 @@ class Config:
 
         @post_load
         def create_processing(self, data, **_):
+            """Hand over validated configuration"""
             # pylint: disable=no-self-use
             # self is required for the Marshmallow decorator
 
@@ -145,6 +176,7 @@ class Config:
 
         @validates("disponibility")
         def validate_disponibility(self, disponibility):
+            """Check that disponibility format is valid"""
             regex = re.compile(r"^([0-9]{2}:[0-9]{2}-[0-9]{2}:[0-9]{2})$")
             match = regex.search(disponibility)
             if not match:
@@ -161,6 +193,7 @@ class Config:
         disponibility="00:00-23:59",
         avoid_spam=False,
     ):
+        """Store configuration"""
         # pylint: disable=too-many-arguments
         # Nine is reasonable in this case.
 
@@ -209,7 +242,12 @@ class Config:
             )
 
 
+class Sender:
+    """Handle interaction with a message channels"""
+
     def __init__(self, sender):
+        """Get ready to send messages"""
+
         self.sender = sender
         for key, value in self.sender.items():
             self.send_option = key
@@ -217,18 +255,26 @@ class Config:
         self.bot = telegram.Bot(token=self.sender_config["token"])
 
     def send_telegram(self, message):
+        """Send a message to a telegram bot"""
+
         self.bot.send_message(
             text=message, parse_mode="HTML", chat_id=self.sender_config["chat_id"]
         )
 
     def send(self, message):
+        """Send message to the chosen channels"""
+
         if self.send_option == "telegram":
             self.send_telegram(message)
 
 
 class Checker:
+    """Check the user's project pages for available slots"""
+
     def __init__(self, config: Config):
-        log.info("Initializing the checker")
+        """Get ready to check for slots"""
+
+        log.debug("Initializing the checker")
         self.config = config
         self._intra = None
         self._sender = None
@@ -241,12 +287,20 @@ class Checker:
 
     @property
     def sender(self):
+        """Set up a Sender object if none is active"""
+
         if self.config.sender and self._sender is None:
             self._sender = Sender(self.config.sender)
         return self._sender
 
     @property
     def intra(self):
+        """Valid connection the intra
+
+        If there is no active connection or credentials have changed since logging in,
+        a new connection is open. Otherwise, the connection remains unchanged.
+        """
+
         if (
             self._intra is None
             or self._intra.login != self.config.login
@@ -256,11 +310,19 @@ class Checker:
         return self._intra
 
     def health_loop(self):
+        """Log regularly that the checker is alive"""
+
         while True:
             log.info("[Health check] slot checker still alive")
             time.sleep(self.health_delay)
 
     def run(self):
+        """Run the slot checker
+
+        For all configured projects, continuously get available slots within disponibility timeframe
+        Send positive results to desired message channels at least once (if no-spam is True)
+        """
+
         log.info("Check for available slots")
         sent = []
         with self.intra.client:
@@ -306,6 +368,7 @@ class Checker:
 
 
 if __name__ == "__main__":
+
     parser = arg.ArgumentParser(description="42 slot checker")
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="include debugging logs"
