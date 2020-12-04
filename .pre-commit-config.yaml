@@ -12,3 +12,15 @@ repos:
     rev: 19.3b0
     hooks:
     -   id: black
+        name: black
+        stages: [commit]
+        types: [python]
+#        args: ["--check"]
+-   repo: local
+    hooks:
+    -   id: pylint
+        name: pylint
+        stages: [commit]
+        language: system
+        entry: pipenv run pylint --suggestion-mode=y
+        types: [python]

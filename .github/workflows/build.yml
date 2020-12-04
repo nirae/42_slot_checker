@@ -4,16 +4,13 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2 
+      - uses: actions/checkout@v2
 
-      - name: Run black
-        run: pip install black; python -m black . --check
-
-      - name: create config file
+      - name: Create config file
         run: cp config_example.yml config.yml
 
-      - name: build docker image
+      - name: Build docker image
         run: docker build . -t checker
 
-      - name: docker-compose up and check that the program launches successfully
+      - name: Run the container and check that the program launches successfully
         run: timeout --preserve-status 15 docker-compose up --exit-code-from slot_checker || if [ $? -eq 42 ]; then exit 0; else exit 1; fi

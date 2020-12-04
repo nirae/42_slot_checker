@@ -1,6 +1,7 @@
 # 42 Slot Checker
 
 ![Build](https://github.com/nirae/42_slot_checker/workflows/Build/badge.svg)
+![Lint](https://github.com/nirae/42_slot_checker/workflows/Lint/badge.svg)
 ![Black](https://github.com/nirae/42_slot_checker/workflows/Black/badge.svg)
 
 ## Usage
@@ -23,7 +24,14 @@ If you have missing dependencies, install them with pip:
 pip install -r requirements.txt
 ```
 
-or consider using a virtual environment.
+or consider using a virtual environment (for instance with [pipenv](https://pypi.org/project/pipenv/) and similarly set it up from the requirements:
+
+```
+pipenv install -r requirements.txt
+
+# Open a shell in the virtual env
+pipenv shell
+```
 
 ## Usage with Docker
 
@@ -94,38 +102,52 @@ To find your `chat_id`, initiate a conversation with the telegram bot @chatid_ec
 
 Set the environment variable `SLOT_CHECKER_DEBUG` to get more detailed logs.
 
-You can also use your slot page instead of a project slot page by choosing `debug_my_slots` in the `projects` option in the yaml configuration file. You just have to add some slots et you will see your slots to debug
+You can also use your slot page instead of a project slot page by choosing `debug_my_slots` in the `projects` option in the yaml configuration file.
+You just have to add some slots et you will see your slots to debug
+
 To get more detailed logs:
 
 - with docker: set the environment variable `SLOT_CHECKER_DEBUG` in the docker-compose.yml
 - without docker: run the slot_checker with its --verbose option.
 
-Moreover, your slot page instead of a project slot page. You just have to add some slots and you will see your slots to debug
-
 ## Dev
 
-If you are lucky enough to contribute to this project, be aware that among other things, the build stage will check that your code is blacked.
+Be aware that the build stage will check that your code is blacked and linted.
+Pre-commit hooks have been configured to ease these checks during development.
+If you want to use this development set-up:
+```
+pip install -r requirements-dev.txt
+```
 
-To black your files:
+Staged files will be checked anytime a change is committed.
+In case of a format error, the commit will fail but the files will be formatted.
+
+To run pre-commit checks manually:
+
+```
+# On staged files
+pre-commit run
+
+# On all files
+pre-commit run --all-files
+```
+
+This is discouraged, but to skip these checks while committing:
+
+```
+git commit -m "foo" --no-verify
+```
+
+If you don't wish to use pre-commit and want to black your files manually, using this containerized version will avoid OS-related differences with the build black stage.
 
 ```
 # Inside the root of your project directory
-# Note the use of a containerized black to avoid OS-related differences
 docker run --rm -v (pwd):/data cytopia/black .
 ```
-
-To ensure your code is always blacked, consider using git pre-commit hooks:
-
-```
-# if you created a virtual env from the requirements.txt, you don't need to do this
-pip install pre-commit
-```
-The repo is already configured to run several checks prior to committing.
-If these checks fail, the commit is cancelled but files are formatted.
-
 
 ## TODO
 
 - [] add discord on senders
 - [x] log every x minutes the bot is alive
 - [] custom header with referer, user-agent...
+```
