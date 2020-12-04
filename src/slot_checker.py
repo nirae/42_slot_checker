@@ -109,6 +109,9 @@ class Intra:
 
 
 class Config:
+    # pylint: disable=too-many-instance-attributes
+    # Nine is reasonable in this case.
+
     class Schema(Schema):
 
         senders = ["telegram"]
@@ -135,6 +138,9 @@ class Config:
 
         @post_load
         def create_processing(self, data, **kwargs):
+            # pylint: disable=no-self-use
+            # self is required for the Marshmallow decorator
+
             return Config(**data)
 
         @validates("disponibility")
@@ -155,6 +161,9 @@ class Config:
         disponibility="00:00-23:59",
         avoid_spam=False,
     ):
+        # pylint: disable=too-many-arguments
+        # Nine is reasonable in this case.
+
         self.login = login
         self.password = password
         self.refresh = refresh
