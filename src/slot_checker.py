@@ -5,6 +5,8 @@ import os
 import sys
 import time
 import threading
+import logging as log
+import argparse as arg
 from datetime import date, datetime, timedelta
 
 import yaml
@@ -12,22 +14,14 @@ import httpx
 
 # https://python-telegram-bot.readthedocs.io/en/stable/
 import telegram
-import logging as log
-import argparse as arg
 
 # https://www.crummy.com/software/BeautifulSoup/bs4/doc/
 from bs4 import BeautifulSoup
 
 # https://marshmallow.readthedocs.io/en/stable/
-from marshmallow.exceptions import ValidationError
 from marshmallow import Schema, fields, validate, validates, post_load, ValidationError
 
-from exceptions import (
-    slot_checker_exception,
-    IntraFailedSignin,
-    SlotCheckerException,
-    SlotCheckError,
-)
+from exceptions import slot_checker_exception, IntraFailedSignin, SlotCheckerException
 from env import SIGNIN_URL, PROJECTS_URL, PROFILE_URL, DEBUG_PROJECT, PATH_CONFIG
 
 log.basicConfig(
