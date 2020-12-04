@@ -177,6 +177,8 @@ class Config:
         @validates("disponibility")
         def validate_disponibility(self, disponibility):
             """Check that disponibility format is valid"""
+            # pylint: disable=no-self-use
+            # self is required for the Marshmallow decorator
             regex = re.compile(r"^([0-9]{2}:[0-9]{2}-[0-9]{2}:[0-9]{2})$")
             match = regex.search(disponibility)
             if not match:
