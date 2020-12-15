@@ -4,6 +4,11 @@
 ![Lint](https://github.com/nirae/42_slot_checker/workflows/Lint/badge.svg)
 ![Black](https://github.com/nirae/42_slot_checker/workflows/Black/badge.svg)
 
+A tool to check and notify about available correction slots for 42 projects.  
+It does not book slots for you.  
+It was designed to be helpful given the difficulty of finding slots.  
+Please use it responsibly and don't make it part of the problem !
+
 ## Usage
 
 ```
