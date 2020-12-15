@@ -40,7 +40,7 @@ pipenv shell
 
 ## Usage with Docker
 
-Full set-up is provided with Docker, docker-compose and Makefile.
+Full set-up is provided with Docker, docker-compose and Makefile.  
 If you don't have Docker and docker-compose, check out the official [Docker](https://docs.docker.com/get-docker/) and [Docker-Compose](https://docs.docker.com/compose/install/) doc and follow the guidelines for your distribution.
 
 Then you can run one of the makefile rules:
@@ -52,8 +52,6 @@ make up
 # Build and up container in detached mode
 make upd
 ```
-
-If you don't have Docker and docker-compose, check out the official [Docker](https://docs.docker.com/get-docker/) and [Docker-Compose](https://docs.docker.com/compose/install/) doc and follow the guidelines for your distribution.
 
 ## Configuration
 
